@@ -1,5 +1,6 @@
 let fs=require("fs");
 let path=require("path");
+let xlsx=require("xlsx");
 
 let request=require("request");
 let cheerio=require("cheerio");
@@ -61,24 +62,26 @@ function getStats(html){
         let opponentTeamName=t2Name;
 
         if(noOfTd.length==8){
-            let playerName=searchTool(noOfTd[0]).text();
-            let runs=searchTool(noOfTd[2]).text();
-            let balls=searchTool(noOfTd[3]).text();
-            let fours=searchTool(noOfTd[5]).text();
-            let sixes=searchTool(noOfTd[6]).text();
-            let sr=searchTool(noOfTd[7]).text();
+            let playerName=searchTool(noOfTd[0]).text().trim();
+            let runs=searchTool(noOfTd[2]).text().trim();
+            let balls=searchTool(noOfTd[3]).text().trim();
+            let fours=searchTool(noOfTd[5]).text().trim();
+            let sixes=searchTool(noOfTd[6]).text().trim();
+            let sr=searchTool(noOfTd[7]).text().trim();
 
-            let location=path.join(t1Folder,playerName+".json");
+            let location=path.join(t1Folder,playerName+".xlsx");
 
-        let jsonData=contentRead(t1Name,playerName,venu,date,opponentTeamName,result,runs,balls,fours,sixes,sr);
-        let jsonWrite=JSON.stringify(jsonData);
-        
-
-        if(fs.existsSync(location)==false){
-            fs.writeFileSync(location,jsonWrite+",\n");
-        }else{
-            fs.appendFileSync(location,jsonWrite+",\n");
-        }
+        let content=excelReader(location,playerName);
+        let dataObj=contentRead(t1Name,playerName,venu,date,opponentTeamName,result,runs,balls,fours,sixes,sr);
+        content.push(dataObj);
+        excelWriter(content,location,playerName);
+        //let jsonData=JSON.parse(dataObj);
+        // let jsonWrite=JSON.stringify(jsonData);
+        // if(fs.existsSync(location)==false){
+        //     fs.writeFileSync(location,jsonWrite+",\n");
+        // }else{
+        //     fs.appendFileSync(location,jsonWrite+",\n");
+        // }
 
         }
     }
@@ -97,31 +100,36 @@ function getStats(html){
         
         
         if(noOfTd.length==8){
-            let playerName=searchTool(noOfTd[0]).text();
-            let runs=searchTool(noOfTd[2]).text();
-            let balls=searchTool(noOfTd[3]).text();
-            let fours=searchTool(noOfTd[5]).text();
-            let sixes=searchTool(noOfTd[6]).text();
-            let sr=searchTool(noOfTd[7]).text();
-            let location=path.join(t2Folder,playerName+".json");
+            let playerName=searchTool(noOfTd[0]).text().trim();
+            let runs=searchTool(noOfTd[2]).text().trim();
+            let balls=searchTool(noOfTd[3]).text().trim();
+            let fours=searchTool(noOfTd[5]).text().trim();
+            let sixes=searchTool(noOfTd[6]).text().trim();
+            let sr=searchTool(noOfTd[7]).text().trim();
 
-        let jsonData=contentRead(t2Name,playerName,venu,date,opponentTeamName,result,runs,balls,fours,sixes,sr);
-        let jsonWrite=JSON.stringify(jsonData);
+            let location=path.join(t2Folder,playerName+".xlsx");
 
-        if(fs.existsSync(location)==false){
-            fs.writeFileSync(location,jsonWrite+",\n");
-        }else{
-            fs.appendFileSync(location,jsonWrite+",\n");
-        }
+        let content=excelReader(location,playerName);
+        let dataObj=contentRead(t2Name,playerName,venu,date,opponentTeamName,result,runs,balls,fours,sixes,sr);
+        content.push(dataObj);
+        excelWriter(content,location,playerName);
+
+        //let jsonData=JSON.parse(dataObj);
+        // let jsonWrite=JSON.stringify(jsonData);
+        // if(fs.existsSync(location)==false){
+        //     fs.writeFileSync(location,jsonWrite+",\n");
+        // }else{
+        //     fs.appendFileSync(location,jsonWrite+",\n");
+        // }
 
         }
         
     }
 }
-function contentRead(t1Name,playerName,venu,date,opponentTeamName,result,runs,balls,fours,sixes,sr){
+function contentRead(teamName,playerName,venu,date,opponentTeamName,result,runs,balls,fours,sixes,sr){
     let data={
-        "myTeamName":t1Name,
-        "name":playerName,
+        "teamName":teamName,
+        "playerName":playerName,
         "venu":venu ,
         "date":date,
         "opponentTeamName":opponentTeamName,
@@ -134,6 +142,22 @@ function contentRead(t1Name,playerName,venu,date,opponentTeamName,result,runs,ba
     }
     
     return data;
+}
+function excelWriter(jsonData,location,playerName){
+    let newWb=xlsx.utils.book_new();
+    let newWS=xlsx.utils.json_to_sheet(jsonData);
+    xlsx.utils.book_append_sheet(newWb,newWS,playerName);
+    xlsx.writeFileSync(newWb,location);
+}
+function excelReader(location,sheetName){
+    if(fs.existsSync(location)==false){
+        return [];
+    }
+    let wb=xlsx.readFile(location);
+    let excelData=wb.Sheets[sheetName];
+    let ans=xlsx.utils.sheet_to_json(excelData);
+    return ans;
+
 }
 module.exports={
     processSinglematch
